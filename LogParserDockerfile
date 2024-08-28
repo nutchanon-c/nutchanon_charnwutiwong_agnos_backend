@@ -1,0 +1,9 @@
+FROM alpine:latest
+
+RUN apk add --no-cache bash jq postgresql-client
+
+WORKDIR /app
+
+COPY log_parser.sh .
+
+CMD ["./log_parser.sh"]

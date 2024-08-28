@@ -1,0 +1,53 @@
+services:
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - GO_ENV=production
+    command: ["./server"]
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./logs:/var/log/nginx
+    depends_on:
+      - api-server
+
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: agnos
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  log-parser:
+    environment:
+      PGHOST: postgres
+      PGUSER: myuser
+      PGPASSWORD: mypassword
+      PGDATABASE: agnos
+    build:
+      context: .
+      dockerfile: LogParserDockerfile
+    volumes:
+      - ./log_parser.sh:/app/log_parser.sh
+      - ./logs:/var/log/nginx
+    working_dir: /app
+    depends_on:
+      - nginx
+      - postgres
+    command: ["./log_parser.sh"]
+
+volumes:
+  postgres_data:
